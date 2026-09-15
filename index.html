@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>My News App</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: auto;
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            background-color: #eeeeee;
+        }
+
+        button:hover {
+            background-color: #dddddd;
+        }
+
+        .news {
+            padding: 18px 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .news h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .news p {
+            line-height: 1.5;
+        }
+
+        .news a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        .source {
+            font-size: 13px;
+            font-weight: bold;
+            color: #555555;
+        }
+
+        #status {
+            text-align: center;
+            margin: 15px;
+            font-weight: bold;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h1>📰 My News App</h1>
+
+
+    <h3>🇮🇳 India News</h3>
+
+    <div class="buttons">
+
+        <button onclick="getNews('ndtv')">
+            NDTV India
+        </button>
+
+        <button onclick="getNews('indianexpress')">
+            Indian Express
+        </button>
+
+        <button onclick="getNews('googleIndia')">
+            Google India
+        </button>
+
+        <button onclick="getNews('indiaAll')">
+            🇮🇳 All India News
+        </button>
+
+    </div>
+
+
+    <h3>🌎 World News</h3>
+
+    <div class="buttons">
+
+        <button onclick="getNews('bbc')">
+            BBC
+        </button>
+
+        <button onclick="getNews('guardian')">
+            The Guardian
+        </button>
+
+        <button onclick="getNews('worldAll')">
+            🌎 All World News
+        </button>
+
+    </div>
+
+
+    <h3>🌍 Everything</h3>
+
+    <div class="buttons">
+
+        <button onclick="getNews('all')">
+            🌍 All News
+        </button>
+
+    </div>
+
+
+    <div id="status">
+        Choose a news source
+    </div>
+
+
+    <div id="news"></div>
+
+</div>
+
+
+<script>
+
+
+const feeds = {
+
+    // INDIA
+
+    ndtv:
+        "https://feeds.feedburner.com/ndtvnews-india-news",
+
+    indianexpress:
+        "https://indianexpress.com/section/india/feed/",
+
+    googleIndia:
+        "https://news.google.com/rss/search?q=India&hl=en-IN&gl=IN&ceid=IN:en",
+
+
+    // WORLD
+
+    bbc:
+        "https://feeds.bbci.co.uk/news/rss.xml",
+
+    guardian:
+        "https://www.theguardian.com/world/rss"
+
+};
+
+
+const groups = {
+
+    indiaAll: [
+        "ndtv",
+        "indianexpress",
+        "googleIndia"
+    ],
+
+    worldAll: [
+        "bbc",
+        "guardian"
+    ]
+
+};
+
+
+async function getFeed(feedURL) {
+
+    const url =
+        "https://api.rss2json.com/v1/api.json?rss_url="
+        + encodeURIComponent(feedURL);
+
+    const response =
+        await fetch(url);
+
+    return await response.json();
+
+}
+
+
+async function getNews(source) {
+
+    const newsDiv =
+        document.getElementById("news");
+
+    const status =
+        document.getElementById("status");
+
+
+    newsDiv.innerHTML = "";
+
+    status.innerHTML =
+        "⏳ Loading latest news...";
+
+
+    try {
+
+        let sources = [];
+
+
+        // Single source
+
+        if (feeds[source]) {
+
+            sources = [source];
+
+        }
+
+
+        // Group of sources
+
+        else if (groups[source]) {
+
+            sources = groups[source];
+
+        }
+
+
+        // Everything
+
+        else if (source === "all") {
+
+            sources = Object.keys(feeds);
+
+        }
+
+
+        let allItems = [];
+
+
+        for (const name of sources) {
+
+            try {
+
+                const data =
+                    await getFeed(feeds[name]);
+
+
+                if (data.items) {
+
+                    const items =
+                        data.items.map(item => ({
+
+                            ...item,
+
+                            source: name
+
+                        }));
+
+
+                    allItems =
+                        allItems.concat(items);
+
+                }
+
+            }
+
+            catch (error) {
+
+                console.log(
+                    "Could not load " + name
+                );
+
+            }
+
+        }
+
+
+        // Remove duplicate headlines
+
+        const seen =
+            new Set();
+
+
+        allItems =
+            allItems.filter(article => {
+
+                const title =
+                    article.title.trim();
+
+
+                if (seen.has(title)) {
+
+                    return false;
+
+                }
+
+
+                seen.add(title);
+
+                return true;
+
+            });
+
+
+        // Display news
+
+        allItems
+            .slice(0, 30)
+            .forEach((article, index) => {
+
+
+                const div =
+                    document.createElement("div");
+
+
+                div.className =
+                    "news";
+
+
+                let sourceName =
+                    article.source;
+
+
+                if (sourceName === "ndtv") {
+
+                    sourceName =
+                        "NDTV";
+
+                }
+
+                else if (
+                    sourceName === "indianexpress"
+                ) {
+
+                    sourceName =
+                        "Indian Express";
+
+                }
+
+                else if (
+                    sourceName === "googleIndia"
+                ) {
+
+                    sourceName =
+                        "Google India";
+
+                }
+
+                else if (
+                    sourceName === "bbc"
+                ) {
+
+                    sourceName =
+                        "BBC";
+
+                }
+
+                else if (
+                    sourceName === "guardian"
+                ) {
+
+                    sourceName =
+                        "The Guardian";
+
+                }
+
+
+                div.innerHTML = `
+
+                    <div class="source">
+                        ${sourceName}
+                    </div>
+
+                    <h2>
+                        ${index + 1}.
+                        ${article.title}
+                    </h2>
+
+                    <p>
+                        ${article.description || ""}
+                    </p>
+
+                    <a
+                        href="${article.link}"
+                        target="_blank">
+
+                        🔗 Read Full Article
+
+                    </a>
+
+                `;
+
+
+                newsDiv.appendChild(div);
+
+            });
+
+
+        if (allItems.length === 0) {
+
+            status.innerHTML =
+                "❌ No news could be loaded.";
+
+        }
+
+        else {
+
+            status.innerHTML =
+                "Showing " +
+                Math.min(allItems.length, 30) +
+                " latest stories";
+
+        }
+
+    }
+
+
+    catch (error) {
+
+        console.log(error);
+
+        status.innerHTML =
+            "❌ Something went wrong.";
+
+    }
+
+}
+
+
+</script>
+
+</body>
+
+</html>
+
